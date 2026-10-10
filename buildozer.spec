@@ -29,7 +29,7 @@ android.ndk = 25b
 android.permissions = CAMERA, READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, INTERNET
 
 # 需要的 Python 依赖
-requirements = python3,kivy==2.3.0,plyer,requests
+requirements = python3,kivy==2.3.1,plyer,requests
 
 # 日志
 android.logcat_filters =
