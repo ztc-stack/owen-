@@ -1,9 +1,13 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
-鍋ラ绠″ FitnessDiet Manager
-涓€娆惧畨鍗撶楗 + 鍋ヨ韩绠＄悊 App
-鍔熻兘锛?  1. 鎷嶇収/閫夊浘浼扮畻涓€椁愮儹閲忥紙鐧惧害AI鍥惧儚璇嗗埆锛屽彲鎵嬪姩褰曞叆鍏滃簳锛?  2. 璁板綍杩愬姩閲忥紝鎸?MET 鍏紡浼扮畻娑堣€楀崱璺噷涓庡噺鑴傝繘搴?  3. 璁惧畾鍑忛噸鐩爣锛屾寜姣忔棩鐑噺棰勭畻/铔嬬櫧璐ㄧ洰鏍囩粰鍑哄紩瀵间笌鎻愰啋
-鏁版嵁鏈湴瀛樺偍锛圫QLite锛夛紝鏃犻渶鑱旂綉涔熻兘鐢紙璇嗗埆鍔熻兘闇€鑱旂綉锛夈€?"""
+健食管家 FitnessDiet Manager
+一款安卓端饮食 + 健身管理 App
+功能：
+  1. 拍照/选图估算一餐热量（百度AI图像识别，可手动录入兜底）
+  2. 记录运动量，按 MET 公式估算消耗卡路里与减脂进度
+  3. 设定减重目标，按每日热量预算/蛋白质目标给出引导与提醒
+数据本地存储（SQLite），无需联网也能用（识别功能需联网）。
+"""
 
 import os
 import json
@@ -34,46 +38,49 @@ except Exception:
     HAS_PLYER = False
 
 # ---------------------------------------------------------------------------
-# 甯搁噺涓庨厤缃?# ---------------------------------------------------------------------------
+# 常量与配置
+# ---------------------------------------------------------------------------
 
-# 鐧惧害 AI 鍥惧儚璇嗗埆锛堥鐗╄瘑鍒級閰嶇疆 鈥斺€?鍦ㄦ濉叆浣犺嚜宸辩殑 API Key
-BAIDU_API_KEY = ""       # 渚嬪 "xxxx.yyyyy"
-BAIDU_SECRET_KEY = ""    # 渚嬪 "zzzz"
+# 百度 AI 图像识别（食物识别）配置 —— 在此填入你自己的 API Key
+BAIDU_API_KEY = ""       # 例如 "xxxx.yyyyy"
+BAIDU_SECRET_KEY = ""    # 例如 "zzzz"
 BAIDU_TOKEN_URL = "https://aip.baidubce.com/oauth/2.0/token"
 BAIDU_FOOD_URL = "https://aip.baidubce.com/rest/2.0/image-classify/v1/dish"
 
-# 鐢ㄦ埛鍩虹淇℃伅锛堝彲鍦?App 鍐呬慨鏀癸級
+# 用户基础信息（可在 App 内修改）
 DEFAULT_PROFILE = {
     "gender": "male",        # male / female
     "age": 39,
     "height_cm": 178,
     "weight_kg": 78.5,
-    "activity": 1.55,        # 娲诲姩绯绘暟锛氫箙鍧?.2 / 杞诲害1.375 / 涓害1.55 / 楂樺己搴?.725
+    "activity": 1.55,        # 活动系数：久坐1.2 / 轻度1.375 / 中度1.55 / 高强度1.725
     "target_weight_kg": 75.0,
-    "target_date": "2027-01-09",   # 鐩爣鏃ユ湡锛?涓湀鍚庯級
+    "target_date": "2027-01-09",   # 目标日期（3个月后）
 }
 
-# 甯歌椋熺墿鐑噺搴擄紙kcal / 100g 鎴?/涓級锛岀敤浜庢墜鍔ㄥ綍鍏ヤ笌璇嗗埆鍏滃簳
+# 常见食物热量库（kcal / 100g 或 /个），用于手动录入与识别兜底
 FOOD_LIB = {
-    "绫抽キ": 116, "棣掑ご": 223, "闈㈡潯": 110, "绮\": 46,
-    "楦¤泲": 144, "楦¤兏鑲\": 133, "鐗涜倝": 125, "鐚倝": 143,
-    "楸\": 105, "铏\": 93, "璞嗚厫": 82, "瑗垮叞鑺\": 36,
-    "闈掕彍": 25, "鐣寗": 20, "榛勭摐": 16, "鑻规灉": 53,
-    "棣欒晧": 93, "姗欏瓙": 48, "鐗涘ザ": 54, "閰稿ザ": 72,
-    "璞嗘祮": 31, "闈㈠寘": 313, "铔嬬硶": 348, "钖潯": 298,
-    "姹夊牎": 295, "鎶惃": 235, "鍙箰": 43, "濂惰尪": 60,
+    "米饭": 116, "馒头": 223, "面条": 110, "粥": 46,
+    "鸡蛋": 144, "鸡胸肉": 133, "牛肉": 125, "猪肉": 143,
+    "鱼": 105, "虾": 93, "豆腐": 82, "西兰花": 36,
+    "青菜": 25, "番茄": 20, "黄瓜": 16, "苹果": 53,
+    "香蕉": 93, "橙子": 48, "牛奶": 54, "酸奶": 72,
+    "豆浆": 31, "面包": 313, "蛋糕": 348, "薯条": 298,
+    "汉堡": 295, "披萨": 235, "可乐": 43, "奶茶": 60,
 }
 
-# 杩愬姩 MET 鍊硷紙浠ｈ阿褰撻噺锛宬cal/kg/h锛?EXERCISE_MET = {
-    "姝ヨ": 3.5, "蹇蛋": 4.3, "鎱㈣窇": 7.0, "璺戞": 9.8,
-    "楠戣": 6.8, "娓告吵": 8.0, "璺崇怀": 11.0, "HIIT": 8.0,
-    "鍔涢噺璁粌": 5.0, "鐟滀冀": 3.0, "缇芥瘺鐞\": 5.5, "绡悆": 6.5,
-    "瓒崇悆": 7.0, "鐖ゼ姊\": 8.0, "妞渾鏈\": 5.0, "鍒掕埞鏈\": 7.0,
+# 运动 MET 值（代谢当量，kcal/kg/h）
+EXERCISE_MET = {
+    "步行": 3.5, "快走": 4.3, "慢跑": 7.0, "跑步": 9.8,
+    "骑行": 6.8, "游泳": 8.0, "跳绳": 11.0, "HIIT": 8.0,
+    "力量训练": 5.0, "瑜伽": 3.0, "羽毛球": 5.5, "篮球": 6.5,
+    "足球": 7.0, "爬楼梯": 8.0, "椭圆机": 5.0, "划船机": 7.0,
 }
 
 
 # ---------------------------------------------------------------------------
-# 鏁版嵁搴?# ---------------------------------------------------------------------------
+# 数据库
+# ---------------------------------------------------------------------------
 
 class DB:
     def __init__(self):
@@ -111,7 +118,7 @@ class DB:
         prof = dict(DEFAULT_PROFILE)
         for row in self.conn.execute("SELECT key,value FROM profile"):
             prof[row[0]] = row[1]
-        # 绫诲瀷杩樺師
+        # 类型还原
         for k in ("age", "height_cm", "weight_kg", "activity", "target_weight_kg"):
             try:
                 prof[k] = float(prof[k])
@@ -163,11 +170,11 @@ class DB:
 
 
 # ---------------------------------------------------------------------------
-# 璁＄畻閫昏緫
+# 计算逻辑
 # ---------------------------------------------------------------------------
 
 def calc_bmr(prof):
-    """Mifflin-St Jeor 鍏紡"""
+    """Mifflin-St Jeor 公式"""
     if prof["gender"] == "female":
         return 10 * prof["weight_kg"] + 6.25 * prof["height_cm"] - 5 * prof["age"] - 161
     return 10 * prof["weight_kg"] + 6.25 * prof["height_cm"] - 5 * prof["age"] + 5
@@ -178,7 +185,7 @@ def calc_tdee(prof):
 
 
 def calc_target_calories(prof):
-    """鎸夌洰鏍囦綋閲嶄笌鐩爣鏃ユ湡鎺ㄧ畻姣忔棩鐑噺棰勭畻锛堟俯鍜岀己鍙ｏ紝涓嶆瀬绔級"""
+    """按目标体重与目标日期推算每日热量预算（温和缺口，不极端）"""
     tdee = calc_tdee(prof)
     today = datetime.date.today()
     try:
@@ -187,24 +194,25 @@ def calc_target_calories(prof):
         target_d = today + datetime.timedelta(days=90)
     days = max((target_d - today).days, 1)
     need_loss = max(prof["weight_kg"] - prof["target_weight_kg"], 0.0)
-    # 姣忓叕鏂よ剛鑲害 7700 kcal
+    # 每公斤脂肪约 7700 kcal
     daily_deficit = need_loss * 7700 / days
-    # 缂哄彛涓婇檺涓嶈秴杩?TDEE 鐨?25%锛岄伩鍏嶆瀬绔?    daily_deficit = min(daily_deficit, tdee * 0.25)
+    # 缺口上限不超过 TDEE 的 25%，避免极端
+    daily_deficit = min(daily_deficit, tdee * 0.25)
     return tdee - daily_deficit, tdee, daily_deficit
 
 
 def calc_protein_target(prof):
-    """鍑忚剛鏈熻泲鐧借川鐩爣锛?.6~2.0 g/kg 浣撻噸"""
+    """减脂期蛋白质目标：1.6~2.0 g/kg 体重"""
     return round(prof["weight_kg"] * 1.8, 1)
 
 
 def calc_exercise_kcal(met, minutes, weight_kg):
-    """MET 鍏紡锛歬cal = MET * 浣撻噸(kg) * 灏忔椂鏁?""
+    """MET 公式：kcal = MET * 体重(kg) * 小时数"""
     return round(met * weight_kg * (minutes / 60.0), 1)
 
 
 def estimate_food_kcal(food_name, grams=100):
-    """鎸夐鐗╁簱浼扮畻鐑噺"""
+    """按食物库估算热量"""
     for k, v in FOOD_LIB.items():
         if k in food_name:
             return round(v * grams / 100.0, 1)
@@ -212,20 +220,20 @@ def estimate_food_kcal(food_name, grams=100):
 
 
 # ---------------------------------------------------------------------------
-# 鐧惧害 AI 椋熺墿璇嗗埆
+# 百度 AI 食物识别
 # ---------------------------------------------------------------------------
 
-# 鐧惧害 access_token 鏈夋晥鏈熺害 30 澶╋紝缂撳瓨鍒板唴瀛橀伩鍏嶆瘡娆¤瘑鍒兘閲嶆柊鎹㈠彇
+# 百度 access_token 有效期约 30 天，缓存到内存避免每次识别都重新换取
 _BAIDU_TOKEN_CACHE = {"token": None, "expires_at": 0}
 
 
 class BaiduError(Exception):
-    """鐧惧害璇嗗埆涓氬姟閿欒锛宮essage 涓哄彲鐩存帴灞曠ず缁欑敤鎴风殑涓枃鎻愮ず"""
+    """百度识别业务错误，message 为可直接展示给用户的中文提示"""
     pass
 
 
 def baidu_token(force=False):
-    """鑾峰彇鐧惧害 access_token锛堝甫缂撳瓨锛宼oken 杩囨湡鍓?1 澶╄嚜鍔ㄥ埛鏂帮級"""
+    """获取百度 access_token（带缓存，token 过期前 1 天自动刷新）"""
     import time
     now = time.time()
     if not force and _BAIDU_TOKEN_CACHE["token"] and now < _BAIDU_TOKEN_CACHE["expires_at"]:
@@ -241,25 +249,26 @@ def baidu_token(force=False):
         with urllib.request.urlopen(req, timeout=15) as r:
             data = json.loads(r.read().decode())
     except Exception as e:
-        raise BaiduError("缃戠粶寮傚父锛屾棤娉曡繛鎺ョ櫨搴︽湇鍔★細%s" % e)
+        raise BaiduError("网络异常，无法连接百度服务：%s" % e)
 
     if "access_token" not in data:
-        err = data.get("error_description") or data.get("error") or "鏈煡閿欒"
-        raise BaiduError("鑾峰彇鐧惧害鎺堟潈澶辫触锛?s锛堣妫€鏌?API Key / Secret Key 鏄惁姝ｇ‘锛? % err)
+        err = data.get("error_description") or data.get("error") or "未知错误"
+        raise BaiduError("获取百度授权失败：%s（请检查 API Key / Secret Key 是否正确）" % err)
 
     expires_in = int(data.get("expires_in", 2592000))
     _BAIDU_TOKEN_CACHE["token"] = data["access_token"]
-    # 鎻愬墠 1 澶╄繃鏈燂紝閬垮厤涓寸晫澶辨晥
+    # 提前 1 天过期，避免临界失效
     _BAIDU_TOKEN_CACHE["expires_at"] = now + expires_in - 86400
     return _BAIDU_TOKEN_CACHE["token"]
 
 
 def recognize_food(image_path):
-    """璋冪敤鐧惧害鍥惧儚璇嗗埆-鑿滃搧璇嗗埆锛岃繑鍥?[(鑿滃悕, 缃俊搴\", ...]
+    """调用百度图像识别-菜品识别，返回 [(菜名, 置信度), ...]
 
-    鎶涘嚭 BaiduError锛堜腑鏂囨彁绀猴級鎴?RuntimeError锛堟湭閰嶇疆 Key锛夈€?    """
+    抛出 BaiduError（中文提示）或 RuntimeError（未配置 Key）。
+    """
     if not (BAIDU_API_KEY and BAIDU_SECRET_KEY):
-        raise RuntimeError("鏈厤缃櫨搴PI Key")
+        raise RuntimeError("未配置百度API Key")
 
     token = baidu_token()
     with open(image_path, "rb") as f:
@@ -279,32 +288,33 @@ def recognize_food(image_path):
         with urllib.request.urlopen(req, timeout=20) as r:
             data = json.loads(r.read().decode())
     except Exception as e:
-        raise BaiduError("缃戠粶寮傚父锛岃瘑鍒け璐ワ細%s" % e)
+        raise BaiduError("网络异常，识别失败：%s" % e)
 
-    # 鐧惧害杩斿洖閿欒鐮佹椂鍒嗙被澶勭悊
+    # 百度返回错误码时分类处理
     if "error_code" in data:
         code = data["error_code"]
-        if code in (110, 111):          # token 澶辨晥/杩囨湡
+        if code in (110, 111):          # token 失效/过期
             try:
-                token = baidu_token(force=True)   # 寮哄埗鍒锋柊鍚庨噸璇曚竴娆?                req = urllib.request.Request(
+                token = baidu_token(force=True)   # 强制刷新后重试一次
+                req = urllib.request.Request(
                     BAIDU_FOOD_URL + "?access_token=" + token, data=body,
                     headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
                 with urllib.request.urlopen(req, timeout=20) as r:
                     data = json.loads(r.read().decode())
                 if "error_code" in data:
-                    raise BaiduError("璇嗗埆鏈嶅姟寮傚父锛?s锛夛細%s" % (data["error_code"], data.get("error_msg", "")))
+                    raise BaiduError("识别服务异常（%s）：%s" % (data["error_code"], data.get("error_msg", "")))
             except BaiduError:
                 raise
             except Exception as e:
-                raise BaiduError("缃戠粶寮傚父锛岃瘑鍒け璐ワ細%s" % e)
-        elif code == 17:                # QPS 瓒呴檺
-            raise BaiduError("璇锋眰杩囦簬棰戠箒锛堝厤璐圭増姣忕闄?2 娆★級锛岃绋嶅悗鍐嶈瘯")
-        elif code == 18:                # 閰嶉鑰楀敖
-            raise BaiduError("鏈湀鍏嶈垂璇嗗埆棰濆害宸茬敤瀹岋紝璇峰埌鐧惧害鏅鸿兘浜戞煡鐪嬮厤棰?)
-        elif code == 4:                 # 璇锋眰瓒呴檺
-            raise BaiduError("浠婃棩璇嗗埆娆℃暟宸茶揪涓婇檺锛岃鏄庡ぉ鍐嶈瘯")
+                raise BaiduError("网络异常，识别失败：%s" % e)
+        elif code == 17:                # QPS 超限
+            raise BaiduError("请求过于频繁（免费版每秒限 2 次），请稍后再试")
+        elif code == 18:                # 配额耗尽
+            raise BaiduError("本月免费识别额度已用完，请到百度智能云查看配额")
+        elif code == 4:                 # 请求超限
+            raise BaiduError("今日识别次数已达上限，请明天再试")
         else:
-            raise BaiduError("璇嗗埆澶辫触锛?s锛夛細%s" % (code, data.get("error_msg", "")))
+            raise BaiduError("识别失败（%s）：%s" % (code, data.get("error_msg", "")))
 
     results = []
     for item in data.get("result", []):
@@ -312,28 +322,29 @@ def recognize_food(image_path):
     return results
 
 
-# 浠介噺鍗曚綅鎹㈢畻锛氭妸"纰?涓?浠?鐩?绛夊彛璇唤閲忔姌绠楁垚鍏嬶紙鐢ㄤ簬鐑噺浼扮畻锛?PORTION_TO_GRAMS = {
-    "纰\": 200, "灏忕": 150, "澶х": 300, "鐩\": 250, "纰\": 150,
-    "浠\": 200, "涓\": 100, "鍙\": 100, "鐗\": 30, "鍧\": 50,
-    "鍕\": 20, "鏉\": 250, "鐡\": 330, "鐩\": 250, "涓\": 80,
+# 份量单位换算：把"碗/个/份/盘"等口语份量折算成克（用于热量估算）
+PORTION_TO_GRAMS = {
+    "碗": 200, "小碗": 150, "大碗": 300, "盘": 250, "碟": 150,
+    "份": 200, "个": 100, "只": 100, "片": 30, "块": 50,
+    "勺": 20, "杯": 250, "瓶": 330, "盒": 250, "串": 80,
 }
 
 
 def parse_portion(amount_text):
-    """瑙ｆ瀽浠介噺鏂囨湰锛岃繑鍥?(鍏嬫暟, 鍗曚綅)銆傚 1纰?-> (200, 纰?锛?50g -> (150, g)"""
+    """解析份量文本，返回 (克数, 单位)。如 1碗 -> (200, 碗)；150g -> (150, g)"""
     amount_text = (amount_text or "").strip()
     if not amount_text:
-        return 100, "g"   # 榛樿 100g
-    # 鏀寔 "150g" / "150鍏? / "1纰? / "鍗婄" / "2涓?
+        return 100, "g"   # 默认 100g
+    # 支持 "150g" / "150克" / "1碗" / "半碗" / "2个"
     import re
-    m = re.match(r"^([\d.]+)\s*(g|鍏??$", amount_text)
+    m = re.match(r"^([\d.]+)\s*(g|克)?$", amount_text)
     if m:
         return float(m.group(1)), "g"
-    m = re.match(r"^(鍗妡涓€|涓[涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d.]+)\s*(纰梶灏忕|澶х|鐩榺纰焲浠絴涓獆鍙獆鐗噟鍧梶鍕簗鏉瘄鐡秥鐩抾涓?$", amount_text)
+    m = re.match(r"^(半|一|两|[一二三四五六七八九十\d.]+)\s*(碗|小碗|大碗|盘|碟|份|个|只|片|块|勺|杯|瓶|盒|串)$", amount_text)
     if m:
         num_word, unit = m.group(1), m.group(2)
-        num_map = {"鍗\": 0.5, "涓€": 1, "涓\": 2, "涓\": 3, "鍥\": 4, "浜\": 5,
-                   "鍏\": 6, "涓\": 7, "鍏\": 8, "涔\": 9, "鍗\": 10}
+        num_map = {"半": 0.5, "一": 1, "两": 2, "三": 3, "四": 4, "五": 5,
+                   "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
         n = num_map.get(num_word, float(num_word) if num_word.replace(".", "").isdigit() else 1)
         grams = PORTION_TO_GRAMS.get(unit, 100) * n
         return grams, unit
@@ -341,12 +352,14 @@ def parse_portion(amount_text):
 
 
 def estimate_food_kcal_by_amount(food_name, amount_text="100g"):
-    """鎸変唤閲忎及绠楅鐗╃儹閲忥細杩斿洖 (kcal, 鍏嬫暟, 鍗曚綅)"""
+    """按份量估算食物热量：返回 (kcal, 克数, 单位)"""
     grams, unit = parse_portion(amount_text)
     kcal_per_100 = estimate_food_kcal(food_name)
     if kcal_per_100 is None:
         return None, grams, unit
     return round(kcal_per_100 * grams / 100.0, 1), grams, unit
+
+
 # ---------------------------------------------------------------------------
 # UI
 # ---------------------------------------------------------------------------
@@ -359,13 +372,13 @@ class Root(TabbedPanel):
         self.db = DB()
         self.current_photo = None
 
-        self.add_widget(TabbedPanelItem(text="棣栭〉", content=self.build_home()))
-        self.add_widget(TabbedPanelItem(text="璁伴ギ椋\", content=self.build_meal()))
-        self.add_widget(TabbedPanelItem(text="璁拌繍鍔\", content=self.build_exercise()))
-        self.add_widget(TabbedPanelItem(text="鐩爣", content=self.build_goal()))
-        self.add_widget(TabbedPanelItem(text="璁板綍", content=self.build_history()))
+        self.add_widget(TabbedPanelItem(text="首页", content=self.build_home()))
+        self.add_widget(TabbedPanelItem(text="记饮食", content=self.build_meal()))
+        self.add_widget(TabbedPanelItem(text="记运动", content=self.build_exercise()))
+        self.add_widget(TabbedPanelItem(text="目标", content=self.build_goal()))
+        self.add_widget(TabbedPanelItem(text="记录", content=self.build_history()))
 
-    # ---------- 閫氱敤缁勪欢 ----------
+    # ---------- 通用组件 ----------
     @staticmethod
     def hline():
         return Label(text="-" * 60, size_hint_y=None, height=20)
@@ -375,7 +388,7 @@ class Root(TabbedPanel):
         return Label(text="[b]%s[/b]" % title, markup=True,
                      size_hint_y=None, height=34, color=(0.2, 0.7, 0.4, 1))
 
-    # ---------- 棣栭〉 ----------
+    # ---------- 首页 ----------
     def build_home(self):
         box = BoxLayout(orientation="vertical", padding=12, spacing=8)
         scroll = ScrollView()
@@ -385,7 +398,7 @@ class Root(TabbedPanel):
                                 valign="top", text_size=(Window.width - 60, None))
         self.home_label.bind(texture_size=lambda *a: setattr(
             self.home_label, "height", self.home_label.texture_size[1]))
-        btn_refresh = Button(text="鍒锋柊浠婃棩姒傝", size_hint_y=None, height=48)
+        btn_refresh = Button(text="刷新今日概览", size_hint_y=None, height=48)
         btn_refresh.bind(on_release=lambda *a: self.refresh_home())
         inner.add_widget(self.home_label)
         inner.add_widget(btn_refresh)
@@ -407,32 +420,32 @@ class Root(TabbedPanel):
         remain = target_cal - net
 
         lw = self.db.latest_weight()
-        w_str = "%s %.1f kg" % (lw[0], lw[1]) if lw else "鏈褰?
+        w_str = "%s %.1f kg" % (lw[0], lw[1]) if lw else "未记录"
 
         txt = (
-            "[b]浠婃棩 %s[/b]\n\n"
-            "馃崥 宸叉憚鍏ワ細%.0f kcal锛?d 椁愶級\n"
-            "馃弮 宸叉秷鑰楋細%.0f kcal锛?d 娆¤繍鍔級\n"
-            "鈿栵笍 鍑€鎽勫叆锛?.0f kcal\n\n"
-            "馃幆 浠婃棩鐑噺棰勭畻锛?.0f kcal锛圱DEE %.0f锛岀己鍙?%.0f锛塡n"
-            "馃ォ 铔嬬櫧璐細%.1f / %.1f g\n"
-            "馃搲 鍓╀綑鍙憚鍏ワ細%.0f kcal\n\n"
-            "鈿栵笍 鏈€鏂颁綋閲嶏細%s\n"
-            "鐩爣锛?.1f kg锛?s锛?
+            "[b]今日 %s[/b]\n\n"
+            "🍚 已摄入：%.0f kcal（%d 餐）\n"
+            "🏃 已消耗：%.0f kcal（%d 次运动）\n"
+            "⚖️ 净摄入：%.0f kcal\n\n"
+            "🎯 今日热量预算：%.0f kcal（TDEE %.0f，缺口 %.0f）\n"
+            "🥩 蛋白质：%.1f / %.1f g\n"
+            "📉 剩余可摄入：%.0f kcal\n\n"
+            "⚖️ 最新体重：%s\n"
+            "目标：%.1f kg（%s）"
         ) % (today, intake, len(meals), burn, len(exes), net,
              target_cal, tdee, deficit, protein, protein_target, remain,
              w_str, prof["target_weight_kg"], prof["target_date"])
         self.home_label.text = txt
 
-    # ---------- 璁伴ギ椋?----------
+    # ---------- 记饮食 ----------
     def build_meal(self):
         box = BoxLayout(orientation="vertical", padding=12, spacing=8)
-        box.add_widget(self.section("鎷嶇収浼扮畻鐑噺"))
+        box.add_widget(self.section("拍照估算热量"))
 
         row1 = BoxLayout(size_hint_y=None, height=48, spacing=8)
-        btn_photo = Button(text="馃摲 鎷嶇収/閫夊浘")
+        btn_photo = Button(text="📷 拍照/选图")
         btn_photo.bind(on_release=lambda *a: self.pick_photo())
-        btn_manual = Button(text="鉁嶏笍 鎵嬪姩褰曞叆")
+        btn_manual = Button(text="✍️ 手动录入")
         btn_manual.bind(on_release=lambda *a: self.manual_meal_popup())
         row1.add_widget(btn_photo)
         row1.add_widget(btn_manual)
@@ -442,7 +455,7 @@ class Root(TabbedPanel):
                                        keep_ratio=True)
         box.add_widget(self.photo_preview)
 
-        self.meal_result = Label(text="璇嗗埆缁撴灉灏嗘樉绀哄湪杩欓噷", size_hint_y=None,
+        self.meal_result = Label(text="识别结果将显示在这里", size_hint_y=None,
                                  height=120, markup=True, halign="left",
                                  valign="top", text_size=(Window.width - 60, None))
         self.meal_result.bind(texture_size=lambda *a: setattr(
@@ -450,20 +463,20 @@ class Root(TabbedPanel):
         box.add_widget(self.meal_result)
 
         row2 = BoxLayout(size_hint_y=None, height=48, spacing=8)
-        self.meal_spinner = Spinner(text="鍗堥", values=("鏃╅", "鍗堥", "鍔犻", "鏅氶", "澶滃"))
+        self.meal_spinner = Spinner(text="午餐", values=("早餐", "午餐", "加餐", "晚餐", "夜宵"))
         row2.add_widget(self.meal_spinner)
         box.add_widget(row2)
         return box
 
     def pick_photo(self):
         if not HAS_PLYER:
-            self.toast("褰撳墠鐜涓嶆敮鎸侀€夊浘锛岃鐢ㄦ墜鍔ㄥ綍鍏?)
+            self.toast("当前环境不支持选图，请用手动录入")
             return
         try:
             filechooser.open_file(on_selection=self.on_photo_selected,
                                   filters=[("Images", "*.png", "*.jpg", "*.jpeg")])
         except Exception as e:
-            self.toast("閫夊浘澶辫触锛?s" % e)
+            self.toast("选图失败：%s" % e)
 
     def on_photo_selected(self, selection):
         if not selection:
@@ -474,40 +487,40 @@ class Root(TabbedPanel):
             self.photo_preview.source = path
         except Exception:
             pass
-        self.meal_result.text = "姝ｅ湪璇嗗埆椋熺墿鈥?
+        self.meal_result.text = "正在识别食物…"
         threading.Thread(target=self._recognize_thread, args=(path,), daemon=True).start()
 
     def _recognize_thread(self, path):
         try:
             foods = recognize_food(path)
             if not foods:
-                self._set_meal_result("鏈兘璇嗗埆鍑洪鐗╋紝璇锋墜鍔ㄥ綍鍏ャ€?)
+                self._set_meal_result("未能识别出食物，请手动录入。")
                 return
-            # 淇濆瓨璇嗗埆缁撴灉锛屼緵纭琛ㄥ崟浣跨敤
+            # 保存识别结果，供确认表单使用
             self._last_foods = foods
             lines = []
             for name, prob in foods[:5]:
                 kcal = estimate_food_kcal(name)
                 if kcal:
-                    lines.append("%s锛?.0f%%锛夆増 %.0f kcal/100g" % (name, prob * 100, kcal))
+                    lines.append("%s（%.0f%%）≈ %.0f kcal/100g" % (name, prob * 100, kcal))
                 else:
-                    lines.append("%s锛?.0f%%锛夆€?鏈敹褰曪紝璇锋墜鍔ㄥ綍鍏? % (name, prob * 100))
+                    lines.append("%s（%.0f%%）— 未收录，请手动录入" % (name, prob * 100))
             self._set_meal_result(
-                "璇嗗埆鍒帮細\n" + "\n".join(lines) +
-                "\n\n[b]鐐瑰嚮涓嬫柟銆岀‘璁や唤閲忋€嶉€愰」鏍稿鍚庝繚瀛榌/b]")
-            # 寮瑰嚭鍙紪杈戠殑浠介噺纭琛ㄥ崟
+                "识别到：\n" + "\n".join(lines) +
+                "\n\n[b]点击下方「确认份量」逐项核对后保存[/b]")
+            # 弹出可编辑的份量确认表单
             self._show_confirm_popup(foods)
         except BaiduError as e:
-            self._set_meal_result("璇嗗埆澶辫触锛?s\n璇锋墜鍔ㄥ綍鍏ャ€? % e)
+            self._set_meal_result("识别失败：%s\n请手动录入。" % e)
         except RuntimeError as e:
-            self._set_meal_result("璇嗗埆澶辫触锛?s\n璇锋墜鍔ㄥ綍鍏ャ€? % e)
+            self._set_meal_result("识别失败：%s\n请手动录入。" % e)
         except Exception as e:
-            self._set_meal_result("璇嗗埆澶辫触锛?s\n璇锋墜鍔ㄥ綍鍏ャ€? % e)
+            self._set_meal_result("识别失败：%s\n请手动录入。" % e)
 
     def _show_confirm_popup(self, foods):
-        """寮瑰嚭鍙紪杈戜唤閲忕殑纭琛ㄥ崟锛岄€愰」鏍稿鍚庝繚瀛?""
+        """弹出可编辑份量的确认表单，逐项核对后保存"""
         content = BoxLayout(orientation="vertical", spacing=6, padding=10)
-        tip = Label(text="璇锋牳瀵规瘡鏍烽鐗╃殑浠介噺锛堝彲淇敼锛夛紝灏嗘寜浠介噺绮剧‘浼扮畻鐑噺",
+        tip = Label(text="请核对每样食物的份量（可修改），将按份量精确估算热量",
                     size_hint_y=None, height=30, color=(0.3, 0.3, 0.3, 1))
         content.add_widget(tip)
 
@@ -515,34 +528,34 @@ class Root(TabbedPanel):
         grid = GridLayout(cols=3, size_hint_y=None, spacing=6, row_default_height=44)
         grid.bind(minimum_height=grid.setter("height"))
 
-        # 琛ㄥご
-        grid.add_widget(Label(text="椋熺墿", bold=True))
-        grid.add_widget(Label(text="浠介噺", bold=True))
-        grid.add_widget(Label(text="鐑噺kcal", bold=True))
+        # 表头
+        grid.add_widget(Label(text="食物", bold=True))
+        grid.add_widget(Label(text="份量", bold=True))
+        grid.add_widget(Label(text="热量kcal", bold=True))
 
         self._food_inputs = []
         total = 0.0
         for name, prob in foods[:5]:
             kcal_per_100 = estimate_food_kcal(name)
             grid.add_widget(Label(text="%s" % name))
-            ti = TextInput(text="100g", multiline=False, hint_text="濡?1纰?150g")
+            ti = TextInput(text="100g", multiline=False, hint_text="如 1碗/150g")
             grid.add_widget(ti)
             if kcal_per_100:
                 lbl = Label(text="%.0f/100g" % kcal_per_100)
                 total += kcal_per_100
             else:
-                lbl = Label(text="鏈敹褰\", color=(0.8, 0.3, 0.3, 1))
+                lbl = Label(text="未收录", color=(0.8, 0.3, 0.3, 1))
             grid.add_widget(lbl)
             self._food_inputs.append({"name": name, "ti": ti, "kcal_per_100": kcal_per_100})
 
         scroll.add_widget(grid)
         content.add_widget(scroll)
 
-        self._confirm_total = Label(text="鍚堣锛氱害 %.0f kcal" % total,
+        self._confirm_total = Label(text="合计：约 %.0f kcal" % total,
                                     size_hint_y=None, height=34, bold=True)
         content.add_widget(self._confirm_total)
 
-        popup = Popup(title="纭浠介噺", content=content, size_hint=(0.95, 0.85))
+        popup = Popup(title="确认份量", content=content, size_hint=(0.95, 0.85))
         self._confirm_popup = popup
 
         def recalc(*a):
@@ -552,14 +565,15 @@ class Root(TabbedPanel):
                     continue
                 grams, _ = parse_portion(item["ti"].text)
                 tot += item["kcal_per_100"] * grams / 100.0
-            self._confirm_total.text = "鍚堣锛氱害 %.0f kcal" % tot
+            self._confirm_total.text = "合计：约 %.0f kcal" % tot
 
         def ok(*a):
-            # 鎸夌敤鎴峰～鍐欑殑浠介噺绮剧‘璁＄畻骞朵繚瀛?            desc_parts = []
+            # 按用户填写的份量精确计算并保存
+            desc_parts = []
             total_kcal = 0.0
             for item in self._food_inputs:
                 if item["kcal_per_100"] is None:
-                    desc_parts.append("%s(鏈敹褰?" % item["name"])
+                    desc_parts.append("%s(未收录)" % item["name"])
                     continue
                 grams, unit = parse_portion(item["ti"].text)
                 kcal = item["kcal_per_100"] * grams / 100.0
@@ -572,15 +586,16 @@ class Root(TabbedPanel):
             popup.dismiss()
 
         btns = BoxLayout(size_hint_y=None, height=50, spacing=8)
-        b_ok = Button(text="鉁?淇濆瓨杩欓")
+        b_ok = Button(text="✅ 保存这餐")
         b_ok.bind(on_release=ok)
-        b_cancel = Button(text="鍙栨秷")
+        b_cancel = Button(text="取消")
         b_cancel.bind(on_release=lambda *a: popup.dismiss())
         btns.add_widget(b_ok)
         btns.add_widget(b_cancel)
         content.add_widget(btns)
 
-        # 浠介噺鍙樺寲鏃跺疄鏃堕噸绠楀悎璁?        for item in self._food_inputs:
+        # 份量变化时实时重算合计
+        for item in self._food_inputs:
             item["ti"].bind(text=recalc)
 
         popup.open()
@@ -596,23 +611,23 @@ class Root(TabbedPanel):
 
     def manual_meal_popup(self):
         content = BoxLayout(orientation="vertical", spacing=8, padding=10)
-        ti_desc = TextInput(hint_text="椋熺墿鎻忚堪锛屽锛氱背楗?纰?楦¤兏鑲?50g+瑗垮叞鑺\", multiline=False)
-        ti_kcal = TextInput(hint_text="鐑噺 kcal锛堝彲鐣欑┖鑷姩浼扮畻锛\", multiline=False,
+        ti_desc = TextInput(hint_text="食物描述，如：米饭1碗+鸡胸肉150g+西兰花", multiline=False)
+        ti_kcal = TextInput(hint_text="热量 kcal（可留空自动估算）", multiline=False,
                             input_filter="float")
         content.add_widget(ti_desc)
         content.add_widget(ti_kcal)
-        popup = Popup(title="鎵嬪姩褰曞叆楗", content=content, size_hint=(0.9, 0.5))
+        popup = Popup(title="手动录入饮食", content=content, size_hint=(0.9, 0.5))
 
         def ok(*a):
             desc = ti_desc.text.strip()
             if not desc:
-                self.toast("璇疯緭鍏ラ鐗╂弿杩?)
+                self.toast("请输入食物描述")
                 return
             kcal = None
             if ti_kcal.text:
                 kcal = float(ti_kcal.text)
             else:
-                # 灏濊瘯鎸夐鐗╁簱浼扮畻
+                # 尝试按食物库估算
                 est = 0.0
                 for k, v in FOOD_LIB.items():
                     if k in desc:
@@ -623,9 +638,9 @@ class Root(TabbedPanel):
             popup.dismiss()
 
         btns = BoxLayout(size_hint_y=None, height=48, spacing=8)
-        b_ok = Button(text="淇濆瓨")
+        b_ok = Button(text="保存")
         b_ok.bind(on_release=ok)
-        b_cancel = Button(text="鍙栨秷")
+        b_cancel = Button(text="取消")
         b_cancel.bind(on_release=lambda *a: popup.dismiss())
         btns.add_widget(b_ok)
         btns.add_widget(b_cancel)
@@ -641,24 +656,24 @@ class Root(TabbedPanel):
             "desc": desc, "kcal": kcal, "protein": protein,
             "fat": fat, "carb": carb, "photo": photo,
         })
-        self.toast("宸茶褰曪細%.0f kcal" % kcal)
+        self.toast("已记录：%.0f kcal" % kcal)
         self.refresh_home()
 
-    # ---------- 璁拌繍鍔?----------
+    # ---------- 记运动 ----------
     def build_exercise(self):
         box = BoxLayout(orientation="vertical", padding=12, spacing=8)
-        box.add_widget(self.section("璁板綍杩愬姩"))
+        box.add_widget(self.section("记录运动"))
         row1 = BoxLayout(size_hint_y=None, height=48, spacing=8)
-        self.ex_spinner = Spinner(text="鎱㈣窇", values=sorted(EXERCISE_MET.keys()))
-        self.ex_min = TextInput(hint_text="鏃堕暱(鍒嗛挓)", multiline=False, input_filter="float")
+        self.ex_spinner = Spinner(text="慢跑", values=sorted(EXERCISE_MET.keys()))
+        self.ex_min = TextInput(hint_text="时长(分钟)", multiline=False, input_filter="float")
         row1.add_widget(self.ex_spinner)
         row1.add_widget(self.ex_min)
         box.add_widget(row1)
-        self.ex_note = TextInput(hint_text="澶囨敞锛堝彲閫夛級", multiline=False, size_hint_y=None, height=44)
+        self.ex_note = TextInput(hint_text="备注（可选）", multiline=False, size_hint_y=None, height=44)
         box.add_widget(self.ex_note)
         self.ex_result = Label(text="", size_hint_y=None, height=60, markup=True)
         box.add_widget(self.ex_result)
-        btn = Button(text="鉁?淇濆瓨杩愬姩", size_hint_y=None, height=48)
+        btn = Button(text="✅ 保存运动", size_hint_y=None, height=48)
         btn.bind(on_release=lambda *a: self.save_exercise())
         box.add_widget(btn)
         return box
@@ -668,7 +683,7 @@ class Root(TabbedPanel):
         try:
             minutes = float(self.ex_min.text)
         except Exception:
-            self.toast("璇疯緭鍏ユ湁鏁堟椂闀?)
+            self.toast("请输入有效时长")
             return
         met = EXERCISE_MET[self.ex_spinner.text]
         kcal = calc_exercise_kcal(met, minutes, prof["weight_kg"])
@@ -678,12 +693,12 @@ class Root(TabbedPanel):
             "ex_type": self.ex_spinner.text, "minutes": minutes,
             "kcal": kcal, "note": self.ex_note.text,
         })
-        self.ex_result.text = "[b]%s %s 鍒嗛挓 鈮?%.0f kcal[/b]" % (
+        self.ex_result.text = "[b]%s %s 分钟 ≈ %.0f kcal[/b]" % (
             self.ex_spinner.text, minutes, kcal)
-        self.toast("宸茶褰曡繍鍔?%.0f kcal" % kcal)
+        self.toast("已记录运动 %.0f kcal" % kcal)
         self.refresh_home()
 
-    # ---------- 鐩爣 ----------
+    # ---------- 目标 ----------
     def build_goal(self):
         box = BoxLayout(orientation="vertical", padding=12, spacing=8)
         scroll = ScrollView()
@@ -696,15 +711,15 @@ class Root(TabbedPanel):
         self.goal_label.bind(texture_size=lambda *a: setattr(
             self.goal_label, "height", self.goal_label.texture_size[1]))
 
-        inner.add_widget(self.section("鎴戠殑鐩爣"))
+        inner.add_widget(self.section("我的目标"))
         inner.add_widget(self.goal_label)
 
-        inner.add_widget(self.section("淇敼璧勬枡"))
+        inner.add_widget(self.section("修改资料"))
         grid = GridLayout(cols=2, size_hint_y=None, height=320, spacing=6)
         fields = [
-            ("鎬у埆", "gender"), ("骞撮緞", "age"), ("韬珮cm", "height_cm"),
-            ("褰撳墠浣撻噸kg", "weight_kg"), ("鐩爣浣撻噸kg", "target_weight_kg"),
-            ("鐩爣鏃ユ湡", "target_date"),
+            ("性别", "gender"), ("年龄", "age"), ("身高cm", "height_cm"),
+            ("当前体重kg", "weight_kg"), ("目标体重kg", "target_weight_kg"),
+            ("目标日期", "target_date"),
         ]
         self.inputs = {}
         for label, key in fields:
@@ -714,11 +729,11 @@ class Root(TabbedPanel):
             grid.add_widget(ti)
         inner.add_widget(grid)
 
-        btn_save = Button(text="馃捑 淇濆瓨璧勬枡骞堕噸绠\", size_hint_y=None, height=48)
+        btn_save = Button(text="💾 保存资料并重算", size_hint_y=None, height=48)
         btn_save.bind(on_release=lambda *a: self.save_goal())
         inner.add_widget(btn_save)
 
-        btn_weight = Button(text="鈿栵笍 璁板綍浠婃棩浣撻噸", size_hint_y=None, height=48)
+        btn_weight = Button(text="⚖️ 记录今日体重", size_hint_y=None, height=48)
         btn_weight.bind(on_release=lambda *a: self.weight_popup())
         inner.add_widget(btn_weight)
 
@@ -732,20 +747,20 @@ class Root(TabbedPanel):
         protein = calc_protein_target(prof)
         bmr = calc_bmr(prof)
         lw = self.db.latest_weight()
-        w_str = "%s %.1f kg" % (lw[0], lw[1]) if lw else "鏈褰?
+        w_str = "%s %.1f kg" % (lw[0], lw[1]) if lw else "未记录"
         self.goal_label.text = (
-            "鍩虹浠ｈ阿 BMR锛?.0f kcal\n"
-            "姣忔棩娑堣€?TDEE锛?.0f kcal\n"
-            "姣忔棩鐑噺棰勭畻锛?.0f kcal锛堢己鍙?%.0f锛塡n"
-            "铔嬬櫧璐ㄧ洰鏍囷細%.1f g/澶‐n\n"
-            "褰撳墠浣撻噸锛?.1f kg\n"
-            "鏈€鏂拌褰曪細%s\n"
-            "鐩爣浣撻噸锛?.1f kg锛?s锛塡n\n"
-            "[b]寮曞[/b]锛歕n"
-            "鈥?姣忛鎺у埗鍦ㄩ绠楃殑 1/3 宸﹀彸\n"
-            "鈥?浼樺厛楂樿泲鐧姐€侀珮绾ょ淮椋熺墿\n"
-            "鈥?姣忓ぉ 30 鍒嗛挓浠ヤ笂涓己搴﹁繍鍔╘n"
-            "鈥?姣忓懆鍑忛噸 0.5~1 kg 涓哄疁锛屽嬁鏋佺鑺傞"
+            "基础代谢 BMR：%.0f kcal\n"
+            "每日消耗 TDEE：%.0f kcal\n"
+            "每日热量预算：%.0f kcal（缺口 %.0f）\n"
+            "蛋白质目标：%.1f g/天\n\n"
+            "当前体重：%.1f kg\n"
+            "最新记录：%s\n"
+            "目标体重：%.1f kg（%s）\n\n"
+            "[b]引导[/b]：\n"
+            "• 每餐控制在预算的 1/3 左右\n"
+            "• 优先高蛋白、高纤维食物\n"
+            "• 每天 30 分钟以上中强度运动\n"
+            "• 每周减重 0.5~1 kg 为宜，勿极端节食"
         ) % (bmr, tdee, target_cal, deficit, protein,
              prof["weight_kg"], w_str, prof["target_weight_kg"], prof["target_date"])
 
@@ -759,44 +774,44 @@ class Root(TabbedPanel):
             prof["target_weight_kg"] = float(self.inputs["target_weight_kg"].text)
             prof["target_date"] = self.inputs["target_date"].text.strip()
         except Exception:
-            self.toast("杈撳叆鏈夎锛岃妫€鏌ユ暟瀛?)
+            self.toast("输入有误，请检查数字")
             return
         self.db.save_profile(prof)
-        self.toast("宸蹭繚瀛樺苟閲嶇畻鐩爣")
+        self.toast("已保存并重算目标")
         self.refresh_goal()
         self.refresh_home()
 
     def weight_popup(self):
         content = BoxLayout(orientation="vertical", spacing=8, padding=10)
-        ti = TextInput(hint_text="浠婃棩浣撻噸 kg", multiline=False, input_filter="float")
+        ti = TextInput(hint_text="今日体重 kg", multiline=False, input_filter="float")
         content.add_widget(ti)
-        popup = Popup(title="璁板綍浣撻噸", content=content, size_hint=(0.9, 0.4))
+        popup = Popup(title="记录体重", content=content, size_hint=(0.9, 0.4))
         def ok(*a):
             try:
                 w = float(ti.text)
             except Exception:
-                self.toast("璇疯緭鍏ユ湁鏁堜綋閲?)
+                self.toast("请输入有效体重")
                 return
             self.db.set_weight(datetime.date.today().isoformat(), w)
-            self.toast("宸茶褰?%.1f kg" % w)
+            self.toast("已记录 %.1f kg" % w)
             popup.dismiss()
             self.refresh_goal()
             self.refresh_home()
         btns = BoxLayout(size_hint_y=None, height=48, spacing=8)
-        b1 = Button(text="淇濆瓨"); b1.bind(on_release=ok)
-        b2 = Button(text="鍙栨秷"); b2.bind(on_release=lambda *a: popup.dismiss())
+        b1 = Button(text="保存"); b1.bind(on_release=ok)
+        b2 = Button(text="取消"); b2.bind(on_release=lambda *a: popup.dismiss())
         btns.add_widget(b1); btns.add_widget(b2)
         content.add_widget(btns)
         popup.open()
 
-    # ---------- 璁板綍 ----------
+    # ---------- 记录 ----------
     def build_history(self):
         box = BoxLayout(orientation="vertical", padding=12, spacing=8)
-        box.add_widget(self.section("鍘嗗彶璁板綍"))
+        box.add_widget(self.section("历史记录"))
         row = BoxLayout(size_hint_y=None, height=48, spacing=8)
         self.hist_date = TextInput(text=datetime.date.today().isoformat(),
                                    multiline=False)
-        btn = Button(text="鏌ヨ")
+        btn = Button(text="查询")
         btn.bind(on_release=lambda *a: self.show_history())
         row.add_widget(self.hist_date)
         row.add_widget(btn)
@@ -814,22 +829,22 @@ class Root(TabbedPanel):
         date = self.hist_date.text.strip()
         meals = self.db.meals_by_date(date)
         exes = self.db.exercises_by_date(date)
-        lines = ["[b]%s[/b]" % date, "", "馃崥 楗锛?]
+        lines = ["[b]%s[/b]" % date, "", "🍚 饮食："]
         mi = sum(m[5] for m in meals)
         for m in meals:
-            lines.append("  %s %s锝?s锝?.0f kcal" % (m[2], m[3], m[4], m[5]))
-        lines.append("  灏忚锛?.0f kcal" % mi)
-        lines.append("", "馃弮 杩愬姩锛?)
+            lines.append("  %s %s｜%s｜%.0f kcal" % (m[2], m[3], m[4], m[5]))
+        lines.append("  小计：%.0f kcal" % mi)
+        lines.append("", "🏃 运动：")
         ei = sum(e[5] for e in exes)
         for e in exes:
-            lines.append("  %s %s锝?.0f min锝?.0f kcal" % (e[2], e[3], e[4], e[5]))
-        lines.append("  灏忚锛?.0f kcal" % ei)
-        lines.append("", "鈿栵笍 鍑€鎽勫叆锛?.0f kcal" % (mi - ei))
+            lines.append("  %s %s｜%.0f min｜%.0f kcal" % (e[2], e[3], e[4], e[5]))
+        lines.append("  小计：%.0f kcal" % ei)
+        lines.append("", "⚖️ 净摄入：%.0f kcal" % (mi - ei))
         self.hist_label.text = "\n".join(lines)
 
-    # ---------- 宸ュ叿 ----------
+    # ---------- 工具 ----------
     def toast(self, msg):
-        popup = Popup(title="鎻愮ず", content=Label(text=msg),
+        popup = Popup(title="提示", content=Label(text=msg),
                       size_hint=(0.8, 0.3))
         popup.open()
 
@@ -845,4 +860,3 @@ class FitnessApp(App):
 
 if __name__ == "__main__":
     FitnessApp().run()
-
