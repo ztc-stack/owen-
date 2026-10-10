@@ -1,0 +1,9 @@
+# 健食管家 - 依赖清单
+# 本地运行（Windows 预览）：
+#   pip install kivy plyer requests
+#
+# 打包 APK 时由 buildozer 自动安装，无需手动处理。
+
+kivy==2.3.0
+plyer
+requests
