@@ -55,9 +55,9 @@ DEFAULT_PROFILE = {
 
 # 甯歌椋熺墿鐑噺搴擄紙kcal / 100g 鎴?/涓級锛岀敤浜庢墜鍔ㄥ綍鍏ヤ笌璇嗗埆鍏滃簳
 FOOD_LIB = {
-    "绫抽キ": 116, "棣掑ご": 223, "闈㈡潯": 110, "绮?: 46,
-    "楦¤泲": 144, "楦¤兏鑲?: 133, "鐗涜倝": 125, "鐚倝": 143,
-    "楸?: 105, "铏?: 93, "璞嗚厫": 82, "瑗垮叞鑺?: 36,
+    "绫抽キ": 116, "棣掑ご": 223, "闈㈡潯": 110, "绮\": 46,
+    "楦¤泲": 144, "楦¤兏鑲\": 133, "鐗涜倝": 125, "鐚倝": 143,
+    "楸\": 105, "铏\": 93, "璞嗚厫": 82, "瑗垮叞鑺\": 36,
     "闈掕彍": 25, "鐣寗": 20, "榛勭摐": 16, "鑻规灉": 53,
     "棣欒晧": 93, "姗欏瓙": 48, "鐗涘ザ": 54, "閰稿ザ": 72,
     "璞嗘祮": 31, "闈㈠寘": 313, "铔嬬硶": 348, "钖潯": 298,
@@ -67,8 +67,8 @@ FOOD_LIB = {
 # 杩愬姩 MET 鍊硷紙浠ｈ阿褰撻噺锛宬cal/kg/h锛?EXERCISE_MET = {
     "姝ヨ": 3.5, "蹇蛋": 4.3, "鎱㈣窇": 7.0, "璺戞": 9.8,
     "楠戣": 6.8, "娓告吵": 8.0, "璺崇怀": 11.0, "HIIT": 8.0,
-    "鍔涢噺璁粌": 5.0, "鐟滀冀": 3.0, "缇芥瘺鐞?: 5.5, "绡悆": 6.5,
-    "瓒崇悆": 7.0, "鐖ゼ姊?: 8.0, "妞渾鏈?: 5.0, "鍒掕埞鏈?: 7.0,
+    "鍔涢噺璁粌": 5.0, "鐟滀冀": 3.0, "缇芥瘺鐞\": 5.5, "绡悆": 6.5,
+    "瓒崇悆": 7.0, "鐖ゼ姊\": 8.0, "妞渾鏈\": 5.0, "鍒掕埞鏈\": 7.0,
 }
 
 
@@ -255,7 +255,7 @@ def baidu_token(force=False):
 
 
 def recognize_food(image_path):
-    """璋冪敤鐧惧害鍥惧儚璇嗗埆-鑿滃搧璇嗗埆锛岃繑鍥?[(鑿滃悕, 缃俊搴?, ...]
+    """璋冪敤鐧惧害鍥惧儚璇嗗埆-鑿滃搧璇嗗埆锛岃繑鍥?[(鑿滃悕, 缃俊搴\", ...]
 
     鎶涘嚭 BaiduError锛堜腑鏂囨彁绀猴級鎴?RuntimeError锛堟湭閰嶇疆 Key锛夈€?    """
     if not (BAIDU_API_KEY and BAIDU_SECRET_KEY):
@@ -313,9 +313,9 @@ def recognize_food(image_path):
 
 
 # 浠介噺鍗曚綅鎹㈢畻锛氭妸"纰?涓?浠?鐩?绛夊彛璇唤閲忔姌绠楁垚鍏嬶紙鐢ㄤ簬鐑噺浼扮畻锛?PORTION_TO_GRAMS = {
-    "纰?: 200, "灏忕": 150, "澶х": 300, "鐩?: 250, "纰?: 150,
-    "浠?: 200, "涓?: 100, "鍙?: 100, "鐗?: 30, "鍧?: 50,
-    "鍕?: 20, "鏉?: 250, "鐡?: 330, "鐩?: 250, "涓?: 80,
+    "纰\": 200, "灏忕": 150, "澶х": 300, "鐩\": 250, "纰\": 150,
+    "浠\": 200, "涓\": 100, "鍙\": 100, "鐗\": 30, "鍧\": 50,
+    "鍕\": 20, "鏉\": 250, "鐡\": 330, "鐩\": 250, "涓\": 80,
 }
 
 
@@ -332,8 +332,8 @@ def parse_portion(amount_text):
     m = re.match(r"^(鍗妡涓€|涓[涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d.]+)\s*(纰梶灏忕|澶х|鐩榺纰焲浠絴涓獆鍙獆鐗噟鍧梶鍕簗鏉瘄鐡秥鐩抾涓?$", amount_text)
     if m:
         num_word, unit = m.group(1), m.group(2)
-        num_map = {"鍗?: 0.5, "涓€": 1, "涓?: 2, "涓?: 3, "鍥?: 4, "浜?: 5,
-                   "鍏?: 6, "涓?: 7, "鍏?: 8, "涔?: 9, "鍗?: 10}
+        num_map = {"鍗\": 0.5, "涓€": 1, "涓\": 2, "涓\": 3, "鍥\": 4, "浜\": 5,
+                   "鍏\": 6, "涓\": 7, "鍏\": 8, "涔\": 9, "鍗\": 10}
         n = num_map.get(num_word, float(num_word) if num_word.replace(".", "").isdigit() else 1)
         grams = PORTION_TO_GRAMS.get(unit, 100) * n
         return grams, unit
@@ -360,8 +360,8 @@ class Root(TabbedPanel):
         self.current_photo = None
 
         self.add_widget(TabbedPanelItem(text="棣栭〉", content=self.build_home()))
-        self.add_widget(TabbedPanelItem(text="璁伴ギ椋?, content=self.build_meal()))
-        self.add_widget(TabbedPanelItem(text="璁拌繍鍔?, content=self.build_exercise()))
+        self.add_widget(TabbedPanelItem(text="璁伴ギ椋\", content=self.build_meal()))
+        self.add_widget(TabbedPanelItem(text="璁拌繍鍔\", content=self.build_exercise()))
         self.add_widget(TabbedPanelItem(text="鐩爣", content=self.build_goal()))
         self.add_widget(TabbedPanelItem(text="璁板綍", content=self.build_history()))
 
@@ -531,7 +531,7 @@ class Root(TabbedPanel):
                 lbl = Label(text="%.0f/100g" % kcal_per_100)
                 total += kcal_per_100
             else:
-                lbl = Label(text="鏈敹褰?, color=(0.8, 0.3, 0.3, 1))
+                lbl = Label(text="鏈敹褰\", color=(0.8, 0.3, 0.3, 1))
             grid.add_widget(lbl)
             self._food_inputs.append({"name": name, "ti": ti, "kcal_per_100": kcal_per_100})
 
@@ -596,8 +596,8 @@ class Root(TabbedPanel):
 
     def manual_meal_popup(self):
         content = BoxLayout(orientation="vertical", spacing=8, padding=10)
-        ti_desc = TextInput(hint_text="椋熺墿鎻忚堪锛屽锛氱背楗?纰?楦¤兏鑲?50g+瑗垮叞鑺?, multiline=False)
-        ti_kcal = TextInput(hint_text="鐑噺 kcal锛堝彲鐣欑┖鑷姩浼扮畻锛?, multiline=False,
+        ti_desc = TextInput(hint_text="椋熺墿鎻忚堪锛屽锛氱背楗?纰?楦¤兏鑲?50g+瑗垮叞鑺\", multiline=False)
+        ti_kcal = TextInput(hint_text="鐑噺 kcal锛堝彲鐣欑┖鑷姩浼扮畻锛\", multiline=False,
                             input_filter="float")
         content.add_widget(ti_desc)
         content.add_widget(ti_kcal)
@@ -714,7 +714,7 @@ class Root(TabbedPanel):
             grid.add_widget(ti)
         inner.add_widget(grid)
 
-        btn_save = Button(text="馃捑 淇濆瓨璧勬枡骞堕噸绠?, size_hint_y=None, height=48)
+        btn_save = Button(text="馃捑 淇濆瓨璧勬枡骞堕噸绠\", size_hint_y=None, height=48)
         btn_save.bind(on_release=lambda *a: self.save_goal())
         inner.add_widget(btn_save)
 
