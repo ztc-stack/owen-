@@ -15,7 +15,6 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,ttf,txt,db
 
 # 图标（可选，放到项目根目录 icon.png）
-icon.filename = %(source.dir)s/icon.png
 
 # 支持的架构（arm64-v8a 覆盖绝大多数现代手机）
 android.archs = arm64-v8a
