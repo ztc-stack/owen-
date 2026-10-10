@@ -1,6 +1,5 @@
 name: Build APK
 
-# 触发方式：手动点击 Actions 页面的 "Run workflow" 按钮
 on:
   workflow_dispatch:
 
@@ -20,8 +19,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool \
-            pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 \
-            cmake libffi-dev libssl-dev
+            pkg-config zlib1g-dev libncurses-dev cmake libffi-dev libssl-dev
 
       - name: Install buildozer
         run: |
